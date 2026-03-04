@@ -1,6 +1,6 @@
-# Orcha
+# Orchid flow
 
-A lightweight, async-first workflow orchestration library for LLM applications. Orcha simplifies building multi-step agent workflows with type-safe state management, flexible routing, and built-in observability.
+A lightweight, async-first workflow orchestration (minimal lang-graph alternative) library for LLM applications.  orchid_flow simplifies building multi-step agent workflows with type-safe state management, flexible routing, and built-in observability.
 
 ## Features
 
@@ -15,7 +15,7 @@ A lightweight, async-first workflow orchestration library for LLM applications. 
 ## Installation
 
 ```bash
-pip install orcha
+pip install  orchid_flow
 ```
 
 ## Quick Start
@@ -25,7 +25,7 @@ import asyncio
 from pydantic import BaseModel
 from typing import Optional
 
-from orcha import Workflow, Node, NodeContext, AgentRequest, AgentResp, UIOutput, UserInput
+from  orchid_flow import Workflow, Node, NodeContext, AgentRequest, AgentResp, UIOutput, UserInput
 
 
 class CounterState(BaseModel):
@@ -124,7 +124,7 @@ Node(name="classify", func=classify, output_node=router)
 Define conversation state with Pydantic models. State persists across turns within a conversation.
 
 ```python
-from orcha.context import ConversationState
+from  orchid_flow.context import ConversationState
 
 
 class SupportState(ConversationState):
@@ -151,7 +151,7 @@ async def handle_request(ctx: NodeContext) -> AgentResp:
 Observe workflow lifecycle with callbacks for logging, metrics, or side effects:
 
 ```python
-from orcha import Callback, CallbackEvent
+from  orchid_flow import Callback, CallbackEvent
 
 
 async def log_start(ctx: NodeContext, e: CallbackEvent):
@@ -185,11 +185,11 @@ import asyncio
 from pydantic import BaseModel
 from typing import Optional
 
-from orcha import (
+from  orchid_flow import (
     Workflow, Node, NodeContext, Callback, CallbackEvent,
     AgentRequest, AgentResp, UIOutput, UserInput
 )
-from orcha.context import ConversationState
+from  orchid_flow.context import ConversationState
 
 
 class SupportState(ConversationState):
