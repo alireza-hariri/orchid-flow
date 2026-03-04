@@ -81,7 +81,7 @@ async def my_node(ctx: NodeContext) -> AgentResp | None:
 ```
 
 - Each node can get a config with pydantic type
-- Nodes can also be sync functions that run in a seprate worker process 
+- Nodes can also be sync functions that run in a separate worker process 
 
 ```python
 from pydantic import BaseModel

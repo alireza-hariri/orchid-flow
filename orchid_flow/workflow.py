@@ -34,7 +34,7 @@ def run_node_fn_sync(fn, ctx, config):
 
 
 # def _on_field_change(ctx, name, value, old_value):
-#     print("state {name} chaged! ")
+#     print("state {name} changed! ")
 
 
 class Workflow:
@@ -127,7 +127,9 @@ class Workflow:
         """
         if node_name is None:
             node_name = ctx.node_name
-        event = CallbackEvent(event_name=event_name, node_name=node_name, error=error, data=data)
+        event = CallbackEvent(
+            event_name=event_name, node_name=node_name, error=error, data=data
+        )
         ctx.add_log("info", f"Event '{event_name}' at '{node_name}'")
         for callback in self.callbacks:
             if callback.on == event_name:
@@ -135,7 +137,8 @@ class Workflow:
                     await callback.fire(ctx, event)
                 except Exception:
                     ctx.add_log(
-                        "error", f"Exception while executing callback '{callback.fn.__name__}' on {event_name} Event"
+                        "error",
+                        f"Exception while executing callback '{callback.fn.__name__}' on {event_name} Event",
                     )
 
     async def _execute_node(self, node: Node, ctx: NodeContext) -> Optional[AgentResp]:
@@ -157,7 +160,9 @@ class Workflow:
                 loop = asyncio.get_event_loop()
                 pool = self._get_or_create_worker_pool()
                 ctx_before = ctx.model_dump()
-                result, new_ctx = await loop.run_in_executor(pool, run_node_fn_sync, node.func, ctx_before, node.config)
+                result, new_ctx = await loop.run_in_executor(
+                    pool, run_node_fn_sync, node.func, ctx_before, node.config
+                )
 
                 # update the ctx.state of main process based on new_ctx
                 for k, v in new_ctx.state.model_dump().items():
@@ -303,14 +308,18 @@ class Workflow:
         result = None
         result_node = None
         while tasks:
-            done, tasks = await asyncio.wait(tasks, timeout=self.node_timeout, return_when=asyncio.FIRST_COMPLETED)
+            done, tasks = await asyncio.wait(
+                tasks, timeout=self.node_timeout, return_when=asyncio.FIRST_COMPLETED
+            )
             if len(done) == 0:
                 raise TimeoutError(f"Node timed out after {self.node_timeout}s")
             for task in done:
                 node = node_map[task]
                 res = task.result()
                 if res:
-                    assert result is None, "Only one of concurent nodes shoud have a result"
+                    assert result is None, (
+                        "Only one of concurent nodes should have a result"
+                    )
                     result = res
                     result_node = node
                 else:
