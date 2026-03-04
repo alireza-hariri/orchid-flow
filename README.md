@@ -43,8 +43,7 @@ async def increment(ctx: NodeContext) -> AgentResp:
 
 workflow = Workflow(
     name="counter",
-    state_model=CounterState,
-    init_state=CounterState(),
+    initial_state=CounterState(),
     entry_node="start",
     nodes=[
         Node(name="start", func=increment, output_node=None)
@@ -74,13 +73,15 @@ Nodes are async functions that receive a `NodeContext`. Return `AgentResp` to re
 ```python
 async def my_node(ctx: NodeContext) -> AgentResp | None:
     user_text = ctx.user_input.text
+    user_text = ctx.user_input.text
 
     if user_text:
         return AgentResp(ui_output=UIOutput(text=f"You said: {user_text}"))
     return None
 ```
 
-Nodes can also be sync functions and accept config injection:
+- Each node can get a config with pydantic type
+- Nodes can also be sync functions that run in a seprate worker process 
 
 ```python
 from pydantic import BaseModel
@@ -112,7 +113,7 @@ def router(ctx: NodeContext) -> str:
         return ["refund_node","send_email"]
     return "general_node"
 
-
+# all following nodes are valid:
 Node(name="classify", func=classify, output_node="process")
 Node(name="classify", func=classify, output_node=["send_email", "update_db"])
 Node(name="classify", func=classify, output_node=router)
@@ -132,10 +133,9 @@ class SupportState(ConversationState):
     customer_id: Optional[str] = None
 
 
-workflow = Workflow(
+support_workflow = Workflow(
     name="support",
-    state_model=SupportState,
-    init_state=SupportState(),
+    initial_state=SupportState(),
     ...
 )
 
@@ -157,15 +157,15 @@ from orcha import Callback, CallbackEvent
 async def log_start(ctx: NodeContext, e: CallbackEvent):
     print(f"[START] {ctx.node_name}")
 
-
 async def log_end(ctx: NodeContext, e: CallbackEvent):
     elapsed = e.data["elapsed_ms"]
     print(f"[END] {ctx.node_name} - {elapsed:.2f}ms")
 
-
 async def log_error(ctx: NodeContext, e: CallbackEvent):
-    print(f"[ERROR] {ctx.node_name}: {e.data['error']}")
+    print(f"[ERROR] {ctx.node_name}: {e.error}")
 
+async def on_state_change(ctx: NodeContext, e: CallbackEvent):
+    print(f"[STATE_CHANGE] {ctx.node_name}: {e.data}")
 
 workflow = Workflow(
     ...,
@@ -256,8 +256,7 @@ async def on_set_state(ctx: NodeContext, e: CallbackEvent):
 
 support_workflow = Workflow(
     name="customer_support",
-    state_model=SupportState,
-    init_state=SupportState(),
+    initial_state=SupportState(),
     entry_node="entry_point",
     callbacks=[
         Callback(on="set_state", fn=on_set_state),
@@ -290,46 +289,19 @@ support_workflow = Workflow(
 )
 
 
-async def main():
-    result = await support_workflow.run(
-        AgentRequest(
-            conversation_id="customer-123",
-            user_input=UserInput(text="I need a refund"),
-        )
-    )
-    print(result.ui_output.text)
-
-
-asyncio.run(main())
-```
-
-## FastAPI Integration
-
-Create a REST API for your workflows:
-
-```python
-from fastapi import FastAPI
-from orcha import make_fastapi_app
-from orcha.stores import InMemoryContextStore
-
 app: FastAPI = make_fastapi_app(
-    workflows=[support_workflow, other_workflow],
-    context_store=InMemoryContextStore(),
+    workflows=[support_workflow],
 )
+
 ```
 
-This creates endpoints:
-- `POST /run/{workflow_name}` - Execute a workflow
-
-## API Reference
 
 ### Workflow
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `name` | `str` | Workflow identifier |
-| `state_model` | `Type[BaseModel]` | State Pydantic model |
-| `init_state` | `BaseModel` | Initial state instance |
+| `initial_state` | `BaseModel` | Initial state instance |
 | `entry_node` | `str` | Starting node name |
 | `nodes` | `list[Node]` | Node definitions |
 | `callbacks` | `list[Callback]` | Event handlers (optional) |

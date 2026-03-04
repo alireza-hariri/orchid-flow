@@ -93,8 +93,7 @@ async def on_set_state(ctx: NodeContext, e: CallbackEvent):
 # The Workflow Definition
 support_workflow = Workflow(
     name="customer_support",
-    state_model=SupportState,
-    init_state=SupportState(),
+    initial_state=SupportState(),
     entry_node="entry_point",
     callbacks=[
         Callback(on="node_start", fn=log_start),

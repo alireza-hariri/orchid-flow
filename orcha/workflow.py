@@ -47,13 +47,12 @@ class Workflow:
     def __init__(
         self,
         name: str,
-        state_model: Type[BaseModel],
-        init_state: BaseModel,
+        initial_state: BaseModel,
         nodes: List[Node],
         entry_node: str,
         callbacks: Optional[List[Callback]] = None,
         n_worker: int = 4,
-        node_timeout: Optional[float] = None,
+        node_timeout: Optional[float] = 20,
         context_store: Optional[ContextStore] = None,
     ):
         """
@@ -61,8 +60,7 @@ class Workflow:
 
         Args:
             name: Unique workflow identifier
-            state_model: Pydantic model class for state validation
-            init_state: Initial state instance
+            initial_state: Initial state instance
             nodes: List of Node instances in the workflow
             callbacks: Optional list of Callback handlers
             n_worker: Number of worker processes for CPU-bound tasks
@@ -72,8 +70,7 @@ class Workflow:
         assert nodes
 
         self.name = name
-        self.state_model = state_model
-        self.init_state = init_state
+        self.initial_state = initial_state
         self.nodes = nodes
         self.entry_node = entry_node
         self.callbacks = callbacks or []
@@ -188,31 +185,6 @@ class Workflow:
             await self._fire_callbacks("node_err", ctx, node.name, error=e)
             raise
 
-    @staticmethod
-    def _run_node_sync(node: Node, ctx: NodeContext) -> Optional[AgentResp]:
-        """
-        Synchronously run a node (for worker offloading).
-
-        Args:
-            node: The Node to execute
-            ctx: Current node context
-
-        Returns:
-            AgentResp from the node, or None
-        """
-
-        if asyncio.iscoroutinefunction(node.func):
-            try:
-                loop = asyncio.get_event_loop()
-            except RuntimeError:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-
-            return loop.run_until_complete(node.func(ctx, node.config))
-        else:
-            return node.func(ctx, node.config)
-        return None
-
     async def _get_next_nodes(self, node: Node, ctx: NodeContext) -> List[Node]:
         """
         Determine the next node(s) to execute based on node configuration and result.
@@ -220,7 +192,6 @@ class Workflow:
         Args:
             node: The current node
             ctx: Current node context
-            result: Result from the current node execution
 
         Returns:
             List of next Node(s) to execute
@@ -279,6 +250,7 @@ class Workflow:
             start_nodes = await self._get_next_nodes(self._node_index[last_node], ctx)
         else:
             start_nodes = [self._node_index[self.entry_node]]
+
             ctx = NodeContext(
                 conversation_id=request.conversation_id,
                 node_name="",
@@ -288,7 +260,7 @@ class Workflow:
                 user_input=request.user_input,
                 logs=[],
             )
-            ctx.state = self.init_state
+            ctx.state = self.initial_state
 
         ctx.state._parent_ctx = ctx
         ctx.state._on_field_change = self._on_field_change
@@ -332,6 +304,8 @@ class Workflow:
         result_node = None
         while tasks:
             done, tasks = await asyncio.wait(tasks, timeout=self.node_timeout, return_when=asyncio.FIRST_COMPLETED)
+            if len(done) == 0:
+                raise TimeoutError(f"Node timed out after {self.node_timeout}s")
             for task in done:
                 node = node_map[task]
                 res = task.result()
