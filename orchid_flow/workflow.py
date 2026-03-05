@@ -1,12 +1,13 @@
 import asyncio
+from asyncio import Task
 from concurrent.futures import ProcessPoolExecutor
 import time
 from typing import Optional, List, Dict, Any, Type, Union, Callable
 from pydantic import BaseModel
 
-from .types import AgentRequest, AgentResp, Turn, UserInput
+from .types import AgentRequest, AgentResp, Turn
 from .context import NodeContext
-from .node import Node, RouterFunc, fn_params
+from .node import Node, fn_params
 from .callbacks import Callback, CallbackEvent
 from .stores.base import ContextStore
 from .stores.memory import InMemoryContextStore
@@ -15,7 +16,7 @@ from .stores.memory import InMemoryContextStore
 async def run_node_fn(fn, ctx, config):
     params = fn_params(fn)
     if len(params) == 1:
-        assert config is None, "this node should not have a config"
+        assert config is None, "This node should not have a config"
         return await fn(ctx)
     elif len(params) == 2:
         return await fn(ctx, config)
@@ -232,7 +233,9 @@ class Workflow:
             else:
                 raise Exception("bad return type in router function")
 
-    async def _build_context(self, request: AgentRequest) -> NodeContext:
+    async def _build_context(
+        self, request: AgentRequest
+    ) -> tuple[NodeContext, list[Node]]:
         """
         Build or retrieve NodeContext from the store.
 
@@ -240,7 +243,7 @@ class Workflow:
             request: Incoming AgentRequest
 
         Returns:
-            NodeContext instance ready for execution
+            A tuple of (NodeContext instance, list of start nodes) ready for execution
         """
         stored = await self.context_store.get(request.conversation_id)
 
@@ -277,6 +280,7 @@ class Workflow:
 
         Args:
             ctx: NodeContext to persist
+            last_node: Name of the last executed node
         """
         data = ctx.model_dump()
         data["last_node"] = last_node
@@ -294,8 +298,9 @@ class Workflow:
         """
         ctx, start_nodes = await self._build_context(request)
 
-        tasks = set()
-        node_map: dict[asyncio.Task, Node] = {}
+        ctx.conversation_history.append(Turn(role="user", obj=request.user_input))
+        tasks: set[Task[AgentResp | None]] = set()
+        node_map: dict[Task, Node] = {}
 
         def add_node_task(node):
             ctx.node_counter[node.name] = ctx.node_counter.get(node.name, 0) + 1
@@ -330,6 +335,7 @@ class Workflow:
 
         assert result is not None
         assert result_node is not None
+        ctx.conversation_history.append(Turn(role="bot", obj=result.ui_output))
 
         await self._save_context(ctx, result_node.name)
 

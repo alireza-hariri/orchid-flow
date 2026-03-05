@@ -74,7 +74,6 @@ def intent_router(ctx: NodeContext) -> str:
 
 # Define callbacks for logging
 async def log_start(ctx: NodeContext, e: CallbackEvent):
-    1 + ""
     print(f"Node {ctx.node_name} started.")
 
 
@@ -101,6 +100,7 @@ support_workflow = Workflow(
         Callback(on="node_err", fn=log_err),
         Callback(on="set_state", fn=on_set_state),
     ],
+    n_worker=1,
     nodes=[
         Node(
             name="entry_point",

@@ -34,8 +34,7 @@ class AgentRequest(BaseModel):
 
 class Turn(BaseModel):
     role: Literal["user", "bot"]
-    text: str
-    obj: Optional[UserInput | UIOutput] = None
+    obj: UserInput | UIOutput | None = None
 
 
 class Log(BaseModel):

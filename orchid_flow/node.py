@@ -32,9 +32,8 @@ class Node:
         Args:
             name: Unique identifier for the node
             func: The node function (for function nodes)
-            router: The router function (for router nodes)
             config: Optional Pydantic config model to inject into the function
-            output_node: Next node(s) to execute, can be string, list, or router callable
+            output_node: Next node(s) to execute, can be string, list, or router callable (for router nodes)
             run_in_worker: If True, execute this node in a background worker thread
         """
         self.name = name
@@ -46,8 +45,12 @@ class Node:
         params = fn_params(func)
         assert len(params) <= 2
         if len(params) == 2:
-            assert params[0].annotation is NodeContext, "First arg of a node_fn should have `NodeContext` type hint"
-            assert params[1].annotation is type(config), "Second argument of a node fn should have same type as config"
+            assert params[0].annotation is NodeContext, (
+                "First arg of a node_fn should have `NodeContext` type hint"
+            )
+            assert params[1].annotation is type(config), (
+                "Second argument of a node fn should have same type as config"
+            )
 
     def is_function(self) -> bool:
         """Check if this node is a function node."""
@@ -55,7 +58,6 @@ class Node:
 
 
 def fn_params(func: Callable):
-
     sig = signature(func)
     params: list[Parameter] = list(sig.parameters.values())
     return params

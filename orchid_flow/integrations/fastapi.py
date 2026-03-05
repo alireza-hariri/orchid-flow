@@ -26,7 +26,7 @@ def make_fastapi_app(workflows: List[Workflow], title: str = "Agents API") -> Fa
 
         Args:
             workflow: Name of the workflow from the URL path
-            request: AgentRequest containing conversation_id, workflow_name, and user_input
+            request: AgentRequest containing conversation_id and user_input
 
         Returns:
             AgentResp from the workflow execution
