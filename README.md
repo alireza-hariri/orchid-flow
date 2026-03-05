@@ -15,7 +15,7 @@ A lightweight, async-first workflow orchestration (minimal lang-graph alternativ
 ## Installation
 
 ```bash
-pip install  orchid_flow
+pip install orchid_flow
 ```
 
 ## Quick Start
