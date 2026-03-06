@@ -52,6 +52,18 @@ class Node:
                 "Second argument of a node fn should have same type as config"
             )
 
+        is_async = asyncio.iscoroutinefunction(func)
+        if run_in_worker:
+            assert not is_async, (
+                f"Node '{name}' has run_in_worker=True but func is async. "
+                "Use a sync function when run_in_worker is True."
+            )
+        else:
+            assert is_async, (
+                f"Node '{name}' has run_in_worker=False but func is not async. "
+                "Use an async function in normal mode."
+            )
+
     def is_function(self) -> bool:
         """Check if this node is a function node."""
         return self.func is not None
