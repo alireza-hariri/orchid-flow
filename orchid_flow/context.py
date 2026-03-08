@@ -58,6 +58,9 @@ class NodeContext(BaseModel):
 
     state: State | None = None
 
+    def exec_count(self, node: str):
+        return self.node_counter.get(node, 0)
+
     def add_log(self, level: str, message: str) -> None:
         """
         Add a log entry to the context.

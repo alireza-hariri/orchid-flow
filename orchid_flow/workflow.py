@@ -128,9 +128,7 @@ class Workflow:
         """
         if node_name is None:
             node_name = ctx.node_name
-        event = CallbackEvent(
-            event_name=event_name, node_name=node_name, error=error, data=data
-        )
+        event = CallbackEvent(event_name=event_name, node_name=node_name, error=error, data=data)
         ctx.add_log("info", f"Event '{event_name}' at '{node_name}'")
         for callback in self.callbacks:
             if callback.on == event_name:
@@ -161,9 +159,7 @@ class Workflow:
                 loop = asyncio.get_event_loop()
                 pool = self._get_or_create_worker_pool()
                 ctx_before = ctx.model_dump()
-                result, new_ctx = await loop.run_in_executor(
-                    pool, run_node_fn_sync, node.func, ctx_before, node.config
-                )
+                result, new_ctx = await loop.run_in_executor(pool, run_node_fn_sync, node.func, ctx_before, node.config)
 
                 # update the ctx.state of main process based on new_ctx
                 for k, v in new_ctx.state.model_dump().items():
@@ -181,7 +177,7 @@ class Workflow:
                 node.name,
                 data={
                     "node_result": result,
-                    "elapsed_ms": 1000 * (time.time() - t0),
+                    "elapsed": (time.time() - t0),
                 },
             )
 
@@ -233,9 +229,7 @@ class Workflow:
             else:
                 raise Exception("bad return type in router function")
 
-    async def _build_context(
-        self, request: AgentRequest
-    ) -> tuple[NodeContext, list[Node]]:
+    async def _build_context(self, request: AgentRequest) -> tuple[NodeContext, list[Node]]:
         """
         Build or retrieve NodeContext from the store.
 
@@ -313,18 +307,14 @@ class Workflow:
         result = None
         result_node = None
         while tasks:
-            done, tasks = await asyncio.wait(
-                tasks, timeout=self.node_timeout, return_when=asyncio.FIRST_COMPLETED
-            )
+            done, tasks = await asyncio.wait(tasks, timeout=self.node_timeout, return_when=asyncio.FIRST_COMPLETED)
             if len(done) == 0:
                 raise TimeoutError(f"Node timed out after {self.node_timeout}s")
             for task in done:
                 node = node_map[task]
                 res = task.result()
                 if res:
-                    assert result is None, (
-                        "Only one of concurent nodes should have a result"
-                    )
+                    assert result is None, "Only one of concurent nodes should have a result"
                     result = res
                     result_node = node
                 else:
@@ -335,7 +325,7 @@ class Workflow:
 
         assert result is not None
         assert result_node is not None
-        ctx.conversation_history.append(Turn(role="bot", obj=result.ui_output))
+        ctx.conversation_history.append(Turn(role="assistant", obj=result.ui_output))
 
         await self._save_context(ctx, result_node.name)
 

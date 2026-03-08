@@ -25,7 +25,8 @@ import asyncio
 from pydantic import BaseModel
 from typing import Optional
 
-from  orchid_flow import Workflow, Node, NodeContext, AgentRequest, AgentResp, UIOutput, UserInput
+from orchid_flow import Workflow, Node, NodeContext 
+from orchid_flow.types import AgentRequest, AgentResp, UIOutput, UserInput
 
 
 class CounterState(BaseModel):
@@ -158,8 +159,8 @@ async def log_start(ctx: NodeContext, e: CallbackEvent):
     print(f"[START] {ctx.node_name}")
 
 async def log_end(ctx: NodeContext, e: CallbackEvent):
-    elapsed = e.data["elapsed_ms"]
-    print(f"[END] {ctx.node_name} - {elapsed:.2f}ms")
+    elapsed = e.data["elapsed"]
+    print(f"[END] {ctx.node_name} - {elapsed:.2f}s")
 
 async def log_error(ctx: NodeContext, e: CallbackEvent):
     print(f"[ERROR] {ctx.node_name}: {e.error}")
